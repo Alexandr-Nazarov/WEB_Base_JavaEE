@@ -65,6 +65,7 @@ public class UpdateBean {
         if (addresses == null || addresses.isEmpty()) {
             return new HashSet<>();
         }
+        ;
         return addresses.stream()
                 .map(address -> convertToAddressEntity(address, clientEntity))
                 .collect(Collectors.toSet());
@@ -110,6 +111,35 @@ public class UpdateBean {
         }
     }
 
+    public boolean deleteAddr(Integer clientId, Integer addrId) {
+        ClientEntity clientEntity = dbManager.find(clientId);
+        if (clientEntity != null) {
+            Set<AddressEntity> addresses = clientEntity.getAddressEntities();
+            if (addresses != null && !addresses.isEmpty() && addresses.size() != 1) {
+                for (AddressEntity addressEntity : addresses) {
+                    if (addressEntity.getAddressId().equals(addrId)) {
+                        dbManager.remove(addressEntity);
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public void addAddr(Integer clientId, Addresses addresses ) {
+        ClientEntity clientEntity = dbManager.find(clientId);
+        if (clientEntity != null) {
+            Set<AddressEntity> addressEntities = clientEntity.getAddressEntities();
+            if (addressEntities != null) {
+                AddressEntity addressEntity = convertToAddressEntity(addresses, clientEntity);
+              //  addressEntities.add(addressEntity);
+                dbManager.merge(clientEntity);
+                dbManager.persist(addressEntity);
+            }
+        }
+    }
+
     public ClientEntity findClientById(Integer id){
         if(id==null) Objects.requireNonNull(id, "Идентификатор клиента не может быть null");
         ClientEntity clientEntity = em.find(ClientEntity.class, id);
@@ -125,15 +155,20 @@ public class UpdateBean {
             //em.merge(clientEntity);
             //em.flush();
             dbManager.merge(clientEntity);
-            Set<AddressEntity> addressEntities = convertAddressesToEntities(client.getAddresses(), clientEntity);
+
+//            Set<AddressEntity> addressEntities = convertAddressesToEntities(client.getAddresses(), clientEntity);
+//            if (client.getAddresses() != null && !client.getAddresses().isEmpty()) {
+//                for (AddressEntity addressEntity : addressEntities) {
+//                    //2 этап
+//                    //em.merge(addressEntity);
+//                    //em.flush();
+//                    //3 этап
+//                    dbManager.merge(addressEntity);
+//                }
+//            }
             if (client.getAddresses() != null && !client.getAddresses().isEmpty()) {
-                for (AddressEntity addressEntity : addressEntities) {
-                    //2 этап
-                    //em.merge(addressEntity);
-                    //em.flush();
-                    //3 этап
-                    dbManager.merge(addressEntity);
-                }
+                AddressEntity addressEntity = convertToAddressEntity(client.getAddresses().getFirst(), clientEntity);
+                dbManager.merge(addressEntity);
             }
         }
         return client;
